@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProductManager from './src/screens/ProductManager';
+import SignUpScreen from './src/screens/SignupScreen';
+import auth from '@react-native-firebase/auth';
 
 const Stack = createNativeStackNavigator();
 
@@ -12,12 +14,13 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
   useEffect(() => {
-    const checkLogin = async () => {
-      const token = await AsyncStorage.getItem('token');
-      setIsLoggedIn(!!token);
-    };
-    checkLogin();
+    const unsubscribe = auth().onAuthStateChanged(user => {
+      setIsLoggedIn(!!user);
+    });
+    return unsubscribe;
   }, []);
+
+  if (isLoggedIn === null) return null;
 
   return (
     <NavigationContainer>
@@ -26,20 +29,26 @@ const App = () => {
           <>
             <Stack.Screen name="Home">
               {props => (
-                <HomeScreen {...props} onLogout={() => setIsLoggedIn(false)} />
+                <HomeScreen
+                  {...props}
+                  onLogout={async () => {
+                    await auth().signOut();
+                  }}
+                />
               )}
             </Stack.Screen>
-            <Stack.Screen options={{headerShown:true}} name="ProductManager" component={ProductManager} />
+            <Stack.Screen
+              options={{ headerShown: true }}
+              name="ProductManager"
+              component={ProductManager}
+            />
           </>
         ) : (
-          <Stack.Screen name="Login">
-            {props => (
-              <LoginScreen
-                {...props}
-                onLoginSuccess={() => setIsLoggedIn(true)}
-              />
-            )}
-          </Stack.Screen>
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+
+            <Stack.Screen name="SignUp" component={SignUpScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
